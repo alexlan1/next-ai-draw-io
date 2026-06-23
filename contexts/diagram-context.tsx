@@ -81,6 +81,21 @@ export function DiagramProvider({ children }: { children: React.ReactNode }) {
         chartXMLRef.current = chartXML
     }, [chartXML])
 
+    // One-time: load initial diagram from ?seed=<UTF-8-safe base64 draw.io XML> on startup.
+    // Fires once after the editor becomes ready; skipped if chartXML already has content.
+    useEffect(() => {
+        if (!isDrawioReady) return
+        if (typeof window === 'undefined') return
+        if (chartXML) return // do not overwrite existing content
+        const seed = new URLSearchParams(window.location.search).get('seed')
+        if (!seed) return
+        try {
+            const xml = decodeURIComponent(escape(atob(seed)))
+            if (xml.trim()) loadDiagram(xml, true) // skipValidation=true: seed source is trusted
+        } catch { /* ignore invalid seed – keep blank canvas */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDrawioReady])
+
     // Track if we're expecting an export for file save (stores raw export data)
     const saveResolverRef = useRef<{
         resolver: ((data: string) => void) | null
